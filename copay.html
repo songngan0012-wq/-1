@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>คำนวณร่วมจ่าย</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F0F2F5;
+    --surface: #FFFFFF;
+    --border: #E2E5EA;
+    --text: #1A1D23;
+    --muted: #6B7280;
+    --blue-bg: #EBF3FE;
+    --blue: #1D5FA8;
+    --blue-dark: #0D3C72;
+    --red-bg: #FDEEE9;
+    --red: #C0451E;
+    --red-dark: #882F12;
+    --warn-bg: #FEF3E2;
+    --warn: #92540C;
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+
+  body {
+    font-family: 'IBM Plex Sans Thai', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px 16px 60px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  header h1 {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+  }
+  header p {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .wrap {
+    max-width: 480px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+  }
+
+  label.field-label {
+    font-size: 12px;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+
+  input[type=number] {
+    width: 100%;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans Thai', sans-serif;
+    transition: border-color 0.15s;
+    outline: none;
+  }
+  input[type=number]:focus { border-color: var(--blue); background: #fff; }
+  input[type=number]::placeholder { color: #C0C5CE; }
+
+  .quota-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .quota-inputs input { font-size: 17px; font-weight: 500; height: 42px; padding: 0 12px; }
+
+  .price-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .price-row input { font-size: 30px; font-weight: 600; height: 58px; padding: 0 16px; flex: 1; font-family: 'IBM Plex Mono', monospace; }
+
+  button.add-btn {
+    height: 58px;
+    padding: 0 22px;
+    background: var(--blue);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    font-family: 'IBM Plex Sans Thai', sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s;
+  }
+  button.add-btn:hover { background: var(--blue-dark); }
+  button.add-btn:active { transform: scale(0.98); }
+
+  /* big totals */
+  .totals {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .total-box {
+    border-radius: var(--radius);
+    padding: 20px 16px;
+    text-align: center;
+  }
+  .total-box.gov { background: var(--blue-bg); }
+  .total-box.self { background: var(--red-bg); }
+  .total-box .tl { font-size: 12px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 8px; }
+  .total-box.gov .tl { color: var(--blue); }
+  .total-box.self .tl { color: var(--red); }
+  .total-box .tv {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 38px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -1px;
+  }
+  .total-box.gov .tv { color: var(--blue-dark); }
+  .total-box.self .tv { color: var(--red-dark); }
+
+  /* items table */
+  .items-header {
+    display: grid;
+    grid-template-columns: 1fr 72px 72px 28px;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0 0 8px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+  }
+  .items-header span:not(:first-child) { text-align: right; }
+
+  .item-row {
+    display: grid;
+    grid-template-columns: 1fr 72px 72px 28px;
+    gap: 6px;
+    align-items: center;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .item-row:last-child { border-bottom: none; }
+  .item-price {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .item-gov { font-size: 13px; color: var(--blue); text-align: right; font-family: 'IBM Plex Mono', monospace; }
+  .item-self { font-size: 13px; font-weight: 600; color: var(--red); text-align: right; font-family: 'IBM Plex Mono', monospace; }
+  .del-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 16px;
+    line-height: 1;
+    padding: 2px;
+    border-radius: 4px;
+    transition: color 0.1s;
+    text-align: right;
+  }
+  .del-btn:hover { color: var(--red); }
+
+  .badge {
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 99px;
+    background: var(--warn-bg);
+    color: var(--warn);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .cap-note {
+    background: var(--warn-bg);
+    color: var(--warn);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-size: 13px;
+    display: none;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 24px 0 8px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>คำนวณร่วมจ่าย</h1>
+  <p>รัฐออก 60% · คุณออก 40%</p>
+</header>
+
+<div class="wrap">
+
+  <!-- สิทธิ์คงเหลือ -->
+  <div class="card">
+    <div class="quota-inputs">
+      <div>
+        <label class="field-label">สิทธิ์เดือนนี้คงเหลือ (฿)</label>
+        <input type="number" id="monthlyBudget" placeholder="1000" min="0" step="1" oninput="render()" />
+      </div>
+      <div>
+        <label class="field-label">สิทธิ์วันนี้คงเหลือ (฿)</label>
+        <input type="number" id="dailyBudget" placeholder="200" min="0" step="1" oninput="render()" />
+      </div>
+    </div>
+  </div>
+
+  <!-- ผลรวม -->
+  <div class="totals">
+    <div class="total-box gov">
+      <div class="tl">รัฐบาลจ่าย</div>
+      <div class="tv" id="sumGov">฿0</div>
+    </div>
+    <div class="total-box self">
+      <div class="tl">คุณจ่าย</div>
+      <div class="tv" id="sumSelf">฿0</div>
+    </div>
+  </div>
+
+  <!-- เพิ่มรายการ -->
+  <div class="card">
+    <label class="field-label">ราคาสินค้า (฿)</label>
+    <div class="price-row">
+      <input type="number" id="price" placeholder="0.00" min="0" step="0.01"
+        onkeydown="if(event.key==='Enter')addItem()" />
+      <button class="add-btn" onclick="addItem()">+ เพิ่ม</button>
+    </div>
+  </div>
+
+  <!-- รายการ -->
+  <div class="card" id="itemsCard" style="display:none">
+    <div class="items-header">
+      <span>ราคาเต็ม</span><span>รัฐจ่าย</span><span>คุณจ่าย</span><span></span>
+    </div>
+    <div id="itemsList"></div>
+  </div>
+
+  <!-- แจ้งเตือน -->
+  <div class="cap-note" id="capNote"></div>
+
+</div>
+
+<script>
+let items = [], counter = 1;
+
+function fmt(n) {
+  return '฿' + n.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function fmtBig(n) {
+  return '฿' + n.toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+function getMonthly() { const v = parseFloat(document.getElementById('monthlyBudget').value); return isNaN(v) ? 1000 : v; }
+function getDaily()   { const v = parseFloat(document.getElementById('dailyBudget').value);   return isNaN(v) ? 200  : v; }
+
+function addItem() {
+  const price = parseFloat(document.getElementById('price').value);
+  if (!price || price <= 0) { document.getElementById('price').focus(); return; }
+  items.push({ id: counter++, price });
+  document.getElementById('price').value = '';
+  document.getElementById('price').focus();
+  render();
+}
+
+function removeItem(id) {
+  items = items.filter(x => x.id !== id);
+  render();
+}
+
+function render() {
+  let govUsed = 0, dailyUsed = 0;
+  const computed = items.map(it => {
+    const mLeft = Math.max(0, getMonthly() - govUsed);
+    const dLeft = Math.max(0, getDaily() - dailyUsed);
+    const actualGov = Math.min(it.price * 0.6, mLeft, dLeft);
+    govUsed += actualGov;
+    dailyUsed += actualGov;
+    return { ...it, actualGov, selfPay: it.price - actualGov, capped: actualGov < it.price * 0.6 };
+  });
+
+  const totalGov  = computed.reduce((s, it) => s + it.actualGov, 0);
+  const totalSelf = computed.reduce((s, it) => s + it.selfPay,   0);
+  document.getElementById('sumGov').textContent  = fmtBig(totalGov);
+  document.getElementById('sumSelf').textContent = fmtBig(totalSelf);
+
+  const card = document.getElementById('itemsCard');
+  card.style.display = items.length ? 'block' : 'none';
+
+  document.getElementById('itemsList').innerHTML = computed.map(it => `
+    <div class="item-row">
+      <span class="item-price">
+        ${fmt(it.price)}
+        ${it.capped ? '<span class="badge">โควต้าเต็ม</span>' : ''}
+      </span>
+      <span class="item-gov">${fmt(it.actualGov)}</span>
+      <span class="item-self">${fmt(it.selfPay)}</span>
+      <button class="del-btn" onclick="removeItem(${it.id})" aria-label="ลบ">✕</button>
+    </div>
+  `).join('');
+
+  const capped = computed.filter(it => it.capped);
+  const cap = document.getElementById('capNote');
+  if (capped.length) {
+    cap.style.display = 'block';
+    cap.textContent = '⚠ มี ' + capped.length + ' รายการที่โควต้าไม่พอ รัฐจ่ายได้บางส่วน คุณต้องรับส่วนต่างเพิ่ม';
+  } else {
+    cap.style.display = 'none';
+  }
+}
+</script>
+</body>
+</html>
